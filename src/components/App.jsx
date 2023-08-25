@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 // Utilities
 import { getInitialData } from "../utils";
@@ -8,84 +8,67 @@ import Nav from "./Nav";
 import InputNotes from "./InputNotes";
 import NotesList from "./NotesList";
 
-export default class App extends React.Component {
-    constructor(props) {
-        super(props)
+export default function App() {
+    const [notes, setNotes] = useState(getInitialData());
+    const [keyword, setKeyword] = useState("");
 
-        // init state
-        this.state = {
-            "notes": getInitialData(),
-            "keyword": "",
-        }
-
-        //bind 
-        this.onDelete = this.onDelete.bind(this)
-        this.onArchive = this.onArchive.bind(this)
-        this.onSave = this.onSave.bind(this)
-        this.searchFilter = this.searchFilter.bind(this)
+    const searchFilter = (event) => {
+        setKeyword(event.target.value.toLowerCase());
     }
 
-    searchFilter(event) {
-        this.setState({
-            keyword: event.target.value.toLowerCase(),
-        });
-    }
-
-    onSave({ title, content }) {
+    const onSave = (title, content) => {
         const currentDate = new Date()
-        this.setState(
-            (prevState) => {
-                return {
-                    notes: [
-                        ...prevState.notes,
-                        {
-                            id: +currentDate,
-                            title: title,
-                            body: content,
-                            createdAt: currentDate.toISOString(),
-                            archived: false,
-                        }
-                    ]
+        setNotes(prevNotes =>
+            [
+                ...prevNotes,
+                {
+                    id: +currentDate,
+                    title: title,
+                    body: content,
+                    createdAt: currentDate.toISOString(),
+                    archived: false,
                 }
-            }
+            ]
         )
     }
 
-    onArchive(id) {
-        const updatedNotes = this.state.notes.map(note => {
-            if (note.id == id)
-                return { ...note, archived: !note.archived }
-            return note
+    const onArchive = (id) => {
+        const updatedNotes = notes.map(note => {
+            note.id === id ? { ...note, archived: !note.archived } : note
         })
 
-        this.setState({
-            notes: updatedNotes,
-        })
+        setNotes(updatedNotes);
     }
 
-    onDelete(id) {
-        const notes = this.state.notes.filter(note => note.id !== id)
-        this.setState(
-            {
-                notes: notes,
-            }
-        )
+    const onDelete = (id) => {
+        const deletedNotes = notes.filter(note => note.id !== id)
+
+        setNotes(deletedNotes);
     }
 
-    render() {
-        const queryNotes = this.state.notes.filter((note) => {
-            return note.title.toLowerCase().includes(this.state.keyword);
-        });
+    const queryNotes = notes.filter((note) => note.title.toLowerCase().includes(keyword));
 
-        return (
-            <>
-                <Nav searchHandler={this.searchFilter} />
-                <div className="note-app__body">
-                    <InputNotes titleMaxLength={50} addNotes={this.onSave} />
-                    <NotesList title={"Active Notes"} notes={queryNotes.filter(note => !note.archived)} onDelete={this.onDelete} onArchive={this.onArchive} />
-                    <NotesList title={"Archive Notes"} notes={queryNotes.notes.filter((note) => note.archived)} onDelete={this.onDelete} onArchive={this.onArchive} />
-                </div>
-            </>
-        );
-    }
+    const activeNotes = queryNotes.filter(note => !note.archived);
+    const archivedNotes = queryNotes.filter((note) => note.archived);
+
+    return (
+        <>
+            <Nav searchHandler={searchFilter} />
+            <div className="note-app__body">
+                <InputNotes titleMaxLength={50} addNotes={onSave} />
+                <NotesList
+                    title={"Active Notes"}
+                    notes={activeNotes}
+                    onDelete={onDelete}
+                    onArchive={onArchive}
+                />
+                <NotesList
+                    title={"Archive Notes"}
+                    notes={archivedNotes}
+                    onDelete={onDelete}
+                    onArchive={onArchive}
+                />
+            </div>
+        </>
+    );
 }
